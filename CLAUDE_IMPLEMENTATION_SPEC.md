@@ -87,8 +87,7 @@ vrclog-go ← vrclog-adapters ← vrclog-companion
 
 所有:
 
-- community Adapter constructor
-- `adapters.All()`
+- community Adapter constructor（`yamaplayer.New()`, `iwasync3.New()` 等、サブパッケージ単位）
 - YamaPlayer / iwaSync3等の実ログfixture
 
 ## 2.3 Companion
@@ -249,7 +248,10 @@ vrclog-companion/
 アプリ起動時にcompile-timeで明示的に組み立てる。
 
 ```go
-community := adapters.All()
+community := []vrclog.Adapter{
+    yamaplayer.New(),
+    iwasync3.New(),
+}
 
 all := make([]vrclog.Adapter, 0, 1+len(community))
 all = append(all, vrclog.NewVRChatAdapter())
@@ -261,7 +263,7 @@ engine, err := vrclog.NewEngine(all...)
 要件:
 
 - built-inを先頭にする。
-- `adapters.All()` の順序を保つ。
+- community adapterは `yamaplayer` → `iwasync3` の順に明示的に列挙する（vrclog-adaptersにルート集約APIはない）。
 - global `init()` registryを使わない。
 - runtime plugin discoveryをしない。
 - configからGo package名をロードしない。
@@ -526,13 +528,13 @@ raw lineは既定でDBへ保存しない。
 
 ## 10.1 Schema version
 
-新schemaは `PRAGMA user_version = 2` とする。
+新schemaは `PRAGMA user_version = 3` とする（version 3はテーブル構造変更ではなく、vrclog-goのMediaTarget.Backend必須化に伴うObservation payload契約の厳格化を示す。version 2のDBは旧契約payloadを含みうるため拒否する）。
 
 起動時:
 
-1. user_version 0かつapplication tableなし → schema 2を新規作成
-2. user_version 2 → schema validation後に利用
-3. user_version 1またはその他 → fatal `ErrUnsupportedSchema`
+1. user_version 0かつapplication tableなし → schema 3を新規作成
+2. user_version 3 → schema validation後に利用
+3. user_version 1、2、またはその他 → fatal `ErrUnsupportedSchema`
 4. user_version 0だが旧tableが存在 → fatal
 
 error messageには次を含める。
@@ -1627,9 +1629,10 @@ PathやURLをhealthへ含めない。
 
 ## 23.1 Schema
 
-- empty DB creates version 2
-- version 2 opens
+- empty DB creates version 3
+- version 3 opens
 - old version 1 rejects
+- old version 2 rejects
 - version 0 with old tables rejects
 - no auto migration
 - WAL/constraints enabled
@@ -1925,7 +1928,7 @@ breaking renewalとして記載する。
 
 実装:
 
-- schema version 2
+- schema version 3
 - observations/cursors/diagnostics
 - StoredObservation
 - event codec integration
@@ -2104,7 +2107,7 @@ E2E:
 - [ ] Observation IDだけをstorage identityに使う
 - [ ] raw-line SHA dedupeがない
 - [ ] duplicate conflictをsilent overwriteしない
-- [ ] schema version 2がcleanに作られる
+- [ ] schema version 3がcleanに作られる
 - [ ] old schemaを自動移行しない
 - [ ] observations/cursors/diagnostics tableがある
 - [ ] raw line/pathがObservation APIへ出ない

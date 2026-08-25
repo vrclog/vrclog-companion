@@ -58,7 +58,7 @@ Projector Manager.Apply → World / Presence / Media state
 | `internal/observation` | Observation persistence DTO + vrclog.Observation conversion |
 | `internal/projector` | World/Presence/Media derived state, rebuildable from DB |
 | `internal/sse` | Generic Observation broadcaster (single SSE event type) |
-| `internal/store` | SQLite persistence (schema v2, CommitRecord atomicity) |
+| `internal/store` | SQLite persistence (schema v3, CommitRecord atomicity) |
 | `webembed` | Embedded web UI filesystem (go:embed) |
 
 ### Dependency Injection
@@ -91,7 +91,7 @@ These hold regardless of future feature work — violating them is a regression,
 - **No legacy migration.** SQLite schema is versioned via `PRAGMA user_version`; any unexpected version is fatal, never auto-migrated. Old databases are reset by the user renaming/deleting the file, not by app code.
 - **Media URLs are sensitive.** Never sent to Discord, never auto-opened, never fed to external metadata lookups (no oEmbed/thumbnail/title fetch). Only `http`/`https` schemes may ever be presented as an "open in browser" action, and only on explicit user click.
 - **Generic SSE.** `/api/v1/stream` emits a single `event: observation` type; never add per-EventKind SSE event names. Last-Event-ID recovery uses `Store.LatestSequence()` (DB-backed, correct immediately after a process restart) as the backlog bound, not `Broadcaster.HighWaterSequence()` (in-memory, resets to 0 on restart) — see `internal/sse` and `internal/api/stream.go`.
-- **Adapter composition is compile-time.** `internal/adapter.BuildEngine()` wires `vrclog.NewVRChatAdapter()` + `adapters.All()` in fixed order. No runtime plugin loading, no YAML pattern config, no remote adapter catalog.
+- **Adapter composition is compile-time.** `internal/adapter.BuildEngine()` wires `vrclog.NewVRChatAdapter()` + explicit community adapter constructors (`yamaplayer.New()`, `iwasync3.New()`) in fixed order. No runtime plugin loading, no YAML pattern config, no remote adapter catalog.
 
 ## Key Design Decisions
 

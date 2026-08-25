@@ -9,29 +9,41 @@ import (
 	"github.com/vrclog/vrclog-companion/internal/observation"
 )
 
-func resourceURLObs(id string, resource vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
-	obs, _ := observation.FromVrclogObservation(vrclog.Observation{
+func resourceURLObs(t *testing.T, id string, resource vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
+	t.Helper()
+	obs, err := observation.FromVrclogObservation(vrclog.Observation{
 		ID: vrclog.ObservationID(id), Time: at, AdapterID: adapterID,
 		Event: vrclog.ResourceURLObserved{Resource: resource, Target: target},
 	}, at)
+	if err != nil {
+		t.Fatalf("FromVrclogObservation: %v", err)
+	}
 	obs.OccurredAt = at
 	return obs
 }
 
-func resourceResolvedObs(id string, input, output vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
-	obs, _ := observation.FromVrclogObservation(vrclog.Observation{
+func resourceResolvedObs(t *testing.T, id string, input, output vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
+	t.Helper()
+	obs, err := observation.FromVrclogObservation(vrclog.Observation{
 		ID: vrclog.ObservationID(id), Time: at, AdapterID: adapterID,
 		Event: vrclog.ResourceResolved{Input: input, Output: output, Target: target},
 	}, at)
+	if err != nil {
+		t.Fatalf("FromVrclogObservation: %v", err)
+	}
 	obs.OccurredAt = at
 	return obs
 }
 
-func mediaErrorObs(id string, stage vrclog.MediaStage, message string, resource *vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
-	obs, _ := observation.FromVrclogObservation(vrclog.Observation{
+func mediaErrorObs(t *testing.T, id string, stage vrclog.MediaStage, message string, resource *vrclog.RemoteResource, target *vrclog.MediaTarget, adapterID vrclog.AdapterID, at time.Time) observation.StoredObservation {
+	t.Helper()
+	obs, err := observation.FromVrclogObservation(vrclog.Observation{
 		ID: vrclog.ObservationID(id), Time: at, AdapterID: adapterID,
 		Event: vrclog.MediaErrorObserved{Stage: stage, Message: message, Resource: resource, Target: target},
 	}, at)
+	if err != nil {
+		t.Fatalf("FromVrclogObservation: %v", err)
+	}
 	obs.OccurredAt = at
 	return obs
 }
@@ -44,18 +56,18 @@ func TestMedia_YamaPlayerScenario(t *testing.T) {
 	const youtubeURL = "https://www.youtube.com/watch?v=abc123"
 	const relayURL = "https://relay.internal/proxy?u=abc123"
 
-	applyOne(t, m, resourceURLObs("o1",
+	applyOne(t, m, resourceURLObs(t, "o1",
 		vrclog.RemoteResource{URL: youtubeURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		nil, "community.yamaplayer", base.Add(1*time.Second)))
 
-	applyOne(t, m, resourceURLObs("o2",
+	applyOne(t, m, resourceURLObs(t, "o2",
 		vrclog.RemoteResource{URL: relayURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolverInput},
 		nil, "vrchat.core", base.Add(3*time.Second)))
 
-	applyOne(t, m, mediaErrorObs("o3", vrclog.MediaStagePlayback, "AVPro open failed",
+	applyOne(t, m, mediaErrorObs(t, "o3", vrclog.MediaStagePlayback, "AVPro open failed",
 		nil, nil, "vrchat.core", base.Add(5*time.Second)))
 
-	applyOne(t, m, mediaErrorObs("o4", vrclog.MediaStagePlayback, "video error",
+	applyOne(t, m, mediaErrorObs(t, "o4", vrclog.MediaStagePlayback, "video error",
 		nil, nil, "community.yamaplayer", base.Add(6*time.Second)))
 
 	recent := m.RecentMedia(0)
@@ -100,11 +112,11 @@ func TestMedia_IwaSync3Scenario(t *testing.T) {
 
 	const sourceURL = "https://example.com/stream.mp4"
 
-	applyOne(t, m, resourceURLObs("o1",
+	applyOne(t, m, resourceURLObs(t, "o1",
 		vrclog.RemoteResource{URL: sourceURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		nil, "vrchat.core", base.Add(1*time.Second)))
 
-	applyOne(t, m, mediaErrorObs("o2", vrclog.MediaStagePlayback, "PlayerError",
+	applyOne(t, m, mediaErrorObs(t, "o2", vrclog.MediaStagePlayback, "PlayerError",
 		nil, nil, "community.iwasync3", base.Add(3*time.Second)))
 
 	recent := m.RecentMedia(0)
@@ -125,14 +137,14 @@ func TestMedia_DifferentTargetKeysProduceSeparateAttempts(t *testing.T) {
 	base := time.Now().UTC()
 	applyOne(t, m, joiningObs("j1", "wrld_1", "inst_1", base))
 
-	target1 := &vrclog.MediaTarget{Component: "AVPro", Key: "player1"}
-	target2 := &vrclog.MediaTarget{Component: "AVPro", Key: "player2"}
+	target1 := &vrclog.MediaTarget{Component: "AVPro", Key: "player1", Backend: vrclog.MediaBackendAVPro}
+	target2 := &vrclog.MediaTarget{Component: "AVPro", Key: "player2", Backend: vrclog.MediaBackendAVPro}
 
-	applyOne(t, m, resourceURLObs("o1",
+	applyOne(t, m, resourceURLObs(t, "o1",
 		vrclog.RemoteResource{URL: "https://a.example.com/1", Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		target1, "vrchat.core", base.Add(1*time.Second)))
 
-	applyOne(t, m, resourceURLObs("o2",
+	applyOne(t, m, resourceURLObs(t, "o2",
 		vrclog.RemoteResource{URL: "https://b.example.com/2", Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		target2, "vrchat.core", base.Add(2*time.Second)))
 
@@ -150,11 +162,11 @@ func TestMedia_ResolvedURLNeverBecomesBest(t *testing.T) {
 	const inputURL = "https://relay.internal/attempt"
 	const signedOutputURL = "https://cdn.example.com/signed?token=abc123"
 
-	applyOne(t, m, resourceURLObs("o1",
+	applyOne(t, m, resourceURLObs(t, "o1",
 		vrclog.RemoteResource{URL: inputURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolverInput},
 		nil, "vrchat.core", base.Add(1*time.Second)))
 
-	applyOne(t, m, resourceResolvedObs("o2",
+	applyOne(t, m, resourceResolvedObs(t, "o2",
 		vrclog.RemoteResource{URL: inputURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolverInput},
 		vrclog.RemoteResource{URL: signedOutputURL, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolved},
 		nil, "vrchat.core", base.Add(2*time.Second)))
@@ -187,8 +199,8 @@ func TestMedia_ResolvedOnlyAttemptHasEmptyBest(t *testing.T) {
 	base := time.Now().UTC()
 	applyOne(t, m, joiningObs("j1", "wrld_1", "inst_1", base))
 
-	target := &vrclog.MediaTarget{Component: "AVPro", Key: "solo"}
-	applyOne(t, m, resourceResolvedObs("o1",
+	target := &vrclog.MediaTarget{Component: "AVPro", Key: "solo", Backend: vrclog.MediaBackendAVPro}
+	applyOne(t, m, resourceResolvedObs(t, "o1",
 		vrclog.RemoteResource{URL: "https://relay.internal/x", Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolverInput},
 		vrclog.RemoteResource{URL: "https://cdn.example.com/signed?token=xyz", Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolved},
 		target, "vrchat.core", base.Add(1*time.Second)))
@@ -208,7 +220,7 @@ func TestMedia_WorldBoundaryObservationsNotMerged(t *testing.T) {
 
 	applyOne(t, m, joiningObs("j1", "wrld_1", "inst_1", base))
 	const url1 = "https://example.com/session1.mp4"
-	applyOne(t, m, resourceURLObs("o1",
+	applyOne(t, m, resourceURLObs(t, "o1",
 		vrclog.RemoteResource{URL: url1, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		nil, "vrchat.core", base.Add(1*time.Second)))
 
@@ -218,7 +230,7 @@ func TestMedia_WorldBoundaryObservationsNotMerged(t *testing.T) {
 	// Same URL observed again in the new world session: because
 	// currentSessionAttempts() scopes correlation to inst_2, this must NOT
 	// merge into the inst_1 attempt even though the URL string matches.
-	applyOne(t, m, resourceURLObs("o2",
+	applyOne(t, m, resourceURLObs(t, "o2",
 		vrclog.RemoteResource{URL: url1, Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleSource},
 		nil, "vrchat.core", base.Add(3*time.Second)))
 

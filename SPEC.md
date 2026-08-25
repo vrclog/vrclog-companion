@@ -93,13 +93,16 @@ Projector Manager.Apply(obs)
 
 ```go
 core := vrclog.NewVRChatAdapter()
-community := adapters.All() // vrclog-adapters
+community := []vrclog.Adapter{
+    yamaplayer.New(), // github.com/vrclog/vrclog-adapters/yamaplayer
+    iwasync3.New(),   // github.com/vrclog/vrclog-adapters/iwasync3
+}
 all := append([]vrclog.Adapter{core}, community...)
 engine, err := vrclog.NewEngine(all...)
 ```
 
 - built-in（`vrchat.core`）を先頭に固定
-- `adapters.All()` の順序を保持
+- community adapter は `yamaplayer` → `iwasync3` の順に明示的に列挙する（vrclog-adapters にルート集約 API はない）
 - global init registry・実行時プラグイン読み込み・YAML パターン設定は存在しない
 
 現在ロードされる Adapter:
@@ -168,15 +171,18 @@ Observation identity は `vrclog.ObservationID` のみで判定する。raw line
 
 ---
 
-## 6. SQLite スキーマ（version 2）
+## 6. SQLite スキーマ（version 3）
 
 `PRAGMA user_version` で管理する。**自動マイグレーションはない。**
 
+version 3 はテーブル構造の変更ではなく、vrclog-go の Observation payload 契約が厳格化された（`MediaTarget.Backend` が必須化）ことを示す。version 2 の DB は旧契約で保存された payload を含む可能性があり、そのまま使うと Projector rebuild 時にデコードエラーで fatal クラッシュしうるため、起動時に明示的に拒否する。
+
 | 検出状態 | 挙動 |
 |---------|------|
-| `user_version == 2` | テーブル存在検証後に利用 |
-| `user_version == 0`、旧テーブルなし | schema 2 を新規作成 |
+| `user_version == 3` | テーブル存在検証後に利用 |
+| `user_version == 0`、旧テーブルなし | schema 3 を新規作成 |
 | `user_version == 0`、旧テーブルあり（`events`/`ingest_cursor`/`parse_failures`） | fatal `ErrUnsupportedSchema` |
+| `user_version == 2`（旧 payload 契約） | fatal `ErrUnsupportedSchema` |
 | それ以外のバージョン | fatal `ErrUnsupportedSchema` |
 
 fatal 時はアプリを停止し、DB ファイルをリネームまたは削除して再作成する。

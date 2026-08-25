@@ -82,7 +82,7 @@ vrclog-companion/
 │   ├── observation/         # Observation persistence DTO
 │   ├── projector/           # World/Presence/Media projected state
 │   ├── sse/                 # Generic Observation SSE broadcaster
-│   └── store/                # SQLite persistence (schema v2)
+│   └── store/                # SQLite persistence (schema v3)
 ├── web/                    # Web UI (React + Vite)
 ├── webembed/                # Embedded Web UI (go:embed)
 ├── test/
@@ -149,7 +149,7 @@ This is a breaking renewal: the old flat `Event` model, `/api/v1/events`, `/api/
 
 ## Database schema reset
 
-The SQLite schema is versioned via `PRAGMA user_version` (currently version 2). There is **no automatic migration** from any prior schema. If the app refuses to start because of a schema mismatch, stop the app and rename or delete the database file (`vrclog.sqlite` in the app's data directory) to start fresh — history will be lost, but no data corruption can occur.
+The SQLite schema is versioned via `PRAGMA user_version` (currently version 3). There is **no automatic migration** from any prior schema. If the app refuses to start because of a schema mismatch, stop the app and rename or delete the database file (`vrclog.sqlite` in the app's data directory) to start fresh — history will be lost, but no data corruption can occur.
 
 ## Testing
 

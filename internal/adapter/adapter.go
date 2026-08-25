@@ -6,7 +6,8 @@ package adapter
 import (
 	vrclog "github.com/vrclog/vrclog-go"
 
-	"github.com/vrclog/vrclog-adapters"
+	"github.com/vrclog/vrclog-adapters/iwasync3"
+	"github.com/vrclog/vrclog-adapters/yamaplayer"
 )
 
 // LoadedAdapter describes one Adapter composed into the Engine, for
@@ -18,11 +19,15 @@ type LoadedAdapter struct {
 
 // BuildEngine composes the built-in VRChat core adapter with all
 // community adapters and constructs the vrclog Engine. The core adapter
-// is always registered first; community adapter order follows
-// adapters.All().
+// is always registered first; community adapters are listed explicitly
+// (vrclog-adapters no longer exposes an aggregate All()) in the same
+// order the old All() returned them.
 func BuildEngine() (*vrclog.Engine, []LoadedAdapter, error) {
 	core := vrclog.NewVRChatAdapter()
-	community := adapters.All()
+	community := []vrclog.Adapter{
+		yamaplayer.New(),
+		iwasync3.New(),
+	}
 
 	all := make([]vrclog.Adapter, 0, 1+len(community))
 	all = append(all, core)

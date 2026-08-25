@@ -109,6 +109,10 @@ func (m *Manager) applyLocked(obs observation.StoredObservation) ([]Change, erro
 		changes = append(changes, m.media.applyResourceResolved(ev, obs)...)
 	case vrclog.MediaErrorObserved:
 		changes = append(changes, m.media.applyMediaError(ev, obs)...)
+	case vrclog.AdapterEvent:
+		// Extension envelope for adapter-specific data that doesn't map to
+		// a canonical World/Presence/Media event; intentionally not
+		// projected.
 	}
 
 	if m.rebuilding {

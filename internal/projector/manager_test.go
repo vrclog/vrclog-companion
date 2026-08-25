@@ -161,11 +161,11 @@ func TestMedia_CorrelationWindowBoundary(t *testing.T) {
 			base := time.Now().UTC()
 			applyOne(t, m, joiningObs("j1", "wrld_1", "inst_1", base))
 
-			applyOne(t, m, resourceURLObs("o1",
+			applyOne(t, m, resourceURLObs(t, "o1",
 				vrclog.RemoteResource{URL: "https://example.com/a", Kind: vrclog.ResourceKindVideo, Role: vrclog.ResourceRoleResolverInput},
 				nil, "vrchat.core", base.Add(1*time.Second)))
 
-			applyOne(t, m, mediaErrorObs("o2", vrclog.MediaStagePlayback, "err",
+			applyOne(t, m, mediaErrorObs(t, "o2", vrclog.MediaStagePlayback, "err",
 				nil, nil, "vrchat.core", base.Add(1*time.Second+tc.delta)))
 
 			recent := m.RecentMedia(0)

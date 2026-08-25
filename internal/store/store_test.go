@@ -65,7 +65,7 @@ func makePlayerLeft(id string, record vrclog.Record, name string) vrclog.Observa
 
 // --- 23.1 Schema tests ---
 
-func TestSchema_EmptyDBCreatesVersion2(t *testing.T) {
+func TestSchema_EmptyDBCreatesVersion3(t *testing.T) {
 	s := openTestStore(t)
 	v, err := s.userVersion(context.Background())
 	if err != nil {
@@ -76,7 +76,7 @@ func TestSchema_EmptyDBCreatesVersion2(t *testing.T) {
 	}
 }
 
-func TestSchema_Version2Opens(t *testing.T) {
+func TestSchema_Version3Opens(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test.sqlite")
 	s1, err := Open(path)
 	if err != nil {
@@ -86,7 +86,7 @@ func TestSchema_Version2Opens(t *testing.T) {
 
 	s2, err := Open(path)
 	if err != nil {
-		t.Fatalf("reopen existing v2 db: %v", err)
+		t.Fatalf("reopen existing v3 db: %v", err)
 	}
 	s2.Close()
 }
@@ -99,6 +99,29 @@ func TestSchema_Version1Rejects(t *testing.T) {
 		t.Fatalf("raw open: %v", err)
 	}
 	if _, err := raw.Exec("PRAGMA user_version = 1"); err != nil {
+		t.Fatalf("set user_version: %v", err)
+	}
+	raw.Close()
+
+	_, err = Open(path)
+	if !errors.Is(err, ErrUnsupportedSchema) {
+		t.Fatalf("Open() error = %v, want ErrUnsupportedSchema", err)
+	}
+}
+
+// TestSchema_Version2Rejects guards the vrclog-go dependency bump that made
+// MediaTarget.Backend required: a version 2 database may hold observation
+// payloads encoded under the old, more permissive contract that no longer
+// decode, so it must be rejected up front rather than failing later during
+// Projector rebuild.
+func TestSchema_Version2Rejects(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.sqlite")
+
+	raw, err := sql.Open("sqlite", "file:"+path+"?mode=rwc")
+	if err != nil {
+		t.Fatalf("raw open: %v", err)
+	}
+	if _, err := raw.Exec("PRAGMA user_version = 2"); err != nil {
 		t.Fatalf("set user_version: %v", err)
 	}
 	raw.Close()

@@ -80,7 +80,7 @@ vrclog-companion/
 │   ├── observation/         # Observation 永続化 DTO
 │   ├── projector/           # World/Presence/Media 投影状態
 │   ├── sse/                 # generic Observation SSE broadcaster
-│   └── store/                # SQLite 永続化（schema v2）
+│   └── store/                # SQLite 永続化（schema v3）
 ├── web/                    # Web UI (React + Vite)
 ├── webembed/                # 埋め込み用 Web UI（go:embed）
 ├── test/
@@ -147,7 +147,7 @@ curl http://127.0.0.1:8080/api/v1/health
 
 ## データベーススキーマのリセット
 
-SQLite スキーマは `PRAGMA user_version`（現在バージョン2）でバージョン管理されています。旧スキーマからの**自動マイグレーションはありません**。スキーマ不一致でアプリが起動を拒否した場合は、アプリを停止し、データベースファイル（アプリのデータディレクトリ内の `vrclog.sqlite`）をリネームまたは削除して新規に開始してください。履歴は失われますが、データ破損は発生しません。
+SQLite スキーマは `PRAGMA user_version`（現在バージョン3）でバージョン管理されています。旧スキーマからの**自動マイグレーションはありません**。スキーマ不一致でアプリが起動を拒否した場合は、アプリを停止し、データベースファイル（アプリのデータディレクトリ内の `vrclog.sqlite`）をリネームまたは削除して新規に開始してください。履歴は失われますが、データ破損は発生しません。
 
 ## テスト
 

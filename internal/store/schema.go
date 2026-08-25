@@ -6,9 +6,13 @@ import (
 )
 
 // CurrentSchemaVersion is the current database schema version, tracked via
-// PRAGMA user_version. Version 2 is the Observation/Projector schema; there
-// is no automatic migration path from any earlier version.
-const CurrentSchemaVersion = 2
+// PRAGMA user_version. Version 2 is the Observation/Projector schema.
+// Version 3 marks no table/column change but a stricter upstream vrclog-go
+// payload contract (MediaTarget.Backend is now required): a version 2
+// database may contain payloads that no longer decode, so it is rejected
+// rather than silently failing during Projector rebuild. There is no
+// automatic migration path from any earlier version.
+const CurrentSchemaVersion = 3
 
 // initSchema validates or creates the database schema.
 //
